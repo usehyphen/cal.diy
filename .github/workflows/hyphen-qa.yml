@@ -71,14 +71,28 @@ jobs:
       - name: Run Playwright
         run: >-
           yarn playwright test --project=@calcom/web
-          apps/web/playwright/booking-seats.e2e.ts:189
-          --repeat-each=40
-          --retries=0
+          apps/web/playwright/login.e2e.ts
+          apps/web/playwright/login.2fa.e2e.ts
+          apps/web/playwright/signup.e2e.ts
+          apps/web/playwright/booking-pages.e2e.ts
+          apps/web/playwright/dynamic-booking-pages.e2e.ts
+          apps/web/playwright/event-types.e2e.ts
+          apps/web/playwright/availability.e2e.ts
+          apps/web/playwright/reschedule.e2e.ts
+          apps/web/playwright/booking-seats.e2e.ts
+          apps/web/playwright/booking-limits.e2e.ts
+          apps/web/playwright/booking-confirm-reject.e2e.ts
+          apps/web/playwright/hash-my-url.e2e.ts
+          apps/web/playwright/manage-booking-questions.e2e.ts
+          apps/web/playwright/out-of-office.e2e.ts
+          apps/web/playwright/webhook.e2e.ts
+          apps/web/playwright/embed-code-generator.e2e.ts
+          apps/web/playwright/change-password.e2e.ts
+          apps/web/playwright/settings-admin.e2e.ts
           --max-failures=0
           --reporter=list,json
         env:
           PLAYWRIGHT_HEADLESS: "1"
-          DEBUG: pw:webserver
           PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/reports/results.json
       - uses: actions/upload-artifact@v4
         if: always()

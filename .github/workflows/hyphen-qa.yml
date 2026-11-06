@@ -1,0 +1,101 @@
+name: Hyphen QA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E (@calcom/web)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/calendso
+      DATABASE_DIRECT_URL: postgresql://postgres:postgres@localhost:5432/calendso
+      # Fake values for a disposable test database. Not secrets, and never used in production.
+      NEXTAUTH_SECRET: hyphen-qa-fake-value-not-a-secret
+      CALENDSO_ENCRYPTION_KEY: hyphen-qa-fake-key-not-a-secret0
+      NEXT_PUBLIC_WEBAPP_URL: http://localhost:3000
+      NEXT_PUBLIC_WEBSITE_URL: http://localhost:3000
+      NEXTAUTH_URL: http://localhost:3000
+      ALLOWED_HOSTNAMES: '"cal.local:3000","localhost:3000"'
+      # Inlined at build time, so this has to be set for the build step too.
+      NEXT_PUBLIC_IS_E2E: "1"
+      E2E_TEST_MAILHOG_ENABLED: "1"
+      EMAIL_SERVER_HOST: localhost
+      EMAIL_SERVER_PORT: "1025"
+      NODE_OPTIONS: --max-old-space-size=8192
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: calendso
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+          --health-start-period 2s
+        ports:
+          - 5432:5432
+      mailhog:
+        image: mailhog/mailhog:v1.0.1
+        ports:
+          - 8025:8025
+          - 1025:1025
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - name: Install dependencies
+        run: yarn install
+        env:
+          # Same overrides as .github/actions/yarn-install.
+          YARN_ENABLE_IMMUTABLE_INSTALLS: "false"
+          YARN_NM_MODE: hardlinks-local
+          HUSKY: "0"
+      - run: yarn prisma generate
+      - run: yarn workspace @calcom/prisma db-deploy
+      - run: yarn build
+      - run: yarn db-seed
+      - run: yarn playwright install --with-deps chromium
+      # Full paths, because bare names act as filters. --max-failures=0 overrides the
+      # config's abort after 10 failures.
+      - name: Run Playwright
+        run: >-
+          yarn playwright test --project=@calcom/web
+          apps/web/playwright/login.e2e.ts
+          apps/web/playwright/login.2fa.e2e.ts
+          apps/web/playwright/signup.e2e.ts
+          apps/web/playwright/booking-pages.e2e.ts
+          apps/web/playwright/dynamic-booking-pages.e2e.ts
+          apps/web/playwright/event-types.e2e.ts
+          apps/web/playwright/availability.e2e.ts
+          apps/web/playwright/reschedule.e2e.ts
+          apps/web/playwright/booking-seats.e2e.ts
+          apps/web/playwright/booking-limits.e2e.ts
+          apps/web/playwright/booking-confirm-reject.e2e.ts
+          apps/web/playwright/hash-my-url.e2e.ts
+          apps/web/playwright/manage-booking-questions.e2e.ts
+          apps/web/playwright/out-of-office.e2e.ts
+          apps/web/playwright/webhook.e2e.ts
+          apps/web/playwright/embed-code-generator.e2e.ts
+          apps/web/playwright/change-password.e2e.ts
+          apps/web/playwright/settings-admin.e2e.ts
+          --max-failures=0
+          --reporter=list,json
+        env:
+          PLAYWRIGHT_HEADLESS: "1"
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/reports/results.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hyphen-qa-report
+          path: test-results
+          retention-days: 30

@@ -1,0 +1,65 @@
+name: Hyphen upstream watch
+
+on:
+  schedule:
+    - cron: "23 15 * * 1" # Mondays, early morning Pacific
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      UPSTREAM: calcom/cal.diy
+      COMPARE: main...calcom:cal.diy:main
+    steps:
+      - name: Report upstream commits and advisories
+        run: |
+          gh api "repos/$GH_REPO/compare/$COMPARE" > compare.json
+          ahead=$(jq .ahead_by compare.json)
+
+          gh api "repos/$UPSTREAM/security-advisories?state=published&per_page=100" > all-advisories.json
+          jq '[.[] | select((.published_at | fromdate) > (now - 8 * 86400))]' all-advisories.json > advisories.json
+          advisories=$(jq length advisories.json)
+
+          echo "Upstream ahead by $ahead commits; $advisories new advisories."
+          if [ "$ahead" -eq 0 ] && [ "$advisories" -eq 0 ]; then
+            exit 0
+          fi
+
+          # The commit list sits in a code fence so titles can't @mention anyone or link issues here.
+          {
+            echo "Checked $(date -u +%F) against [$UPSTREAM](https://github.com/$UPSTREAM)."
+            echo
+            echo "## Advisories published in the last 8 days: $advisories"
+            echo
+            echo "Merge a critical advisory within 48 hours."
+            echo
+            jq -r '.[] | "- \(.severity // "unknown"): `\(.summary)` \(.html_url)"' advisories.json
+            echo
+            echo "## Upstream commits not in fork main: $ahead"
+            echo
+            echo "[Compare](https://github.com/$GH_REPO/compare/$COMPARE)"
+            echo
+            echo '```'
+            jq -r '.commits[] | "\(.sha[:7]) \(.commit.message | split("\n")[0])"' compare.json
+            echo '```'
+          } > body.md
+
+          gh label create upstream-watch --color B60205 --force
+          issue=$(gh issue list --label upstream-watch --state open --json number --jq '.[0].number // empty')
+          if [ -z "$issue" ]; then
+            gh issue create --title "Upstream changes to review" --label upstream-watch --body-file body.md
+          else
+            gh issue edit "$issue" --body-file body.md
+            # Editing an issue sends no notification, so a new advisory also gets a comment.
+            if [ "$advisories" -gt 0 ]; then
+              gh issue comment "$issue" --body "$advisories advisories published in the last 8 days. See the issue body."
+            fi
+          fi

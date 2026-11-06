@@ -158,3 +158,5 @@ async function postHandler(request: NextRequest) {
 }
 
 export const POST = defaultResponderForAppDir(postHandler);
+export const GET = defaultResponderForAppDir(postHandler);
+export const dynamic = "force-dynamic";

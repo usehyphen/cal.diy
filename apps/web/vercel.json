@@ -20,6 +20,5 @@
       "path": "/api/cron/changeTimeZone",
       "schedule": "0 * * * *"
     }
-  ],
-  "functions": {}
+  ]
 }

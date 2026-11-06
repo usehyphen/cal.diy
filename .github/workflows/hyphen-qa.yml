@@ -9,7 +9,8 @@ permissions:
 jobs:
   e2e:
     name: E2E (@calcom/web)
-    runs-on: ubuntu-latest
+    # Playwright 1.57.0 refuses ubuntu-latest, which now resolves to 26.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/calendso

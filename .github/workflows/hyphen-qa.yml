@@ -30,7 +30,7 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=8192
     services:
       postgres:
-        image: postgres:17
+        image: postgres:18
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres

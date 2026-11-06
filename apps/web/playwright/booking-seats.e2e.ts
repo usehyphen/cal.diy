@@ -237,12 +237,6 @@ test.describe("Reschedule for booking with seats", () => {
 
     await expect(page.locator("text=You are no longer attending this event")).toBeVisible();
 
-    // TEMP diagnostic: check the rows directly. The other attendee and seat are the control.
-    expect(await prisma.bookingSeat.findUnique({ where: { referenceUid: bookingSeats[0].referenceUid } })).toBeNull();
-    expect(await prisma.attendee.findUnique({ where: { id: bookingSeats[0].attendeeId } })).toBeNull();
-    expect(await prisma.bookingSeat.findUnique({ where: { referenceUid: bookingSeats[1].referenceUid } })).not.toBeNull();
-    expect(await prisma.attendee.findUnique({ where: { id: bookingSeats[1].attendeeId } })).not.toBeNull();
-
     await page.goto(
       `/booking/${booking.uid}?cancel=true&allRemainingBookings=false&seatReferenceUid=${bookingSeats[1].referenceUid}`
     );

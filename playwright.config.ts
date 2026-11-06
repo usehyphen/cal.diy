@@ -34,8 +34,8 @@ const webServer: PlaywrightTestConfig["webServer"] = [
     port: 3000,
     timeout: 60_000,
     reuseExistingServer: !process.env.CI,
-    stdout: "pipe",
-    stderr: "pipe",
+    stdout: "ignore",
+    stderr: "ignore",
   },
 ];
 
@@ -47,8 +47,8 @@ if (IS_EMBED_TEST) {
     port: 3100,
     timeout: 60_000,
     reuseExistingServer: !process.env.CI,
-    stdout: "pipe",
-    stderr: "pipe",
+    stdout: "ignore",
+    stderr: "ignore",
   });
 }
 
@@ -60,8 +60,8 @@ if (IS_EMBED_REACT_TEST) {
     port: 3101,
     timeout: 60_000,
     reuseExistingServer: !process.env.CI,
-    stdout: "pipe",
-    stderr: "pipe",
+    stdout: "ignore",
+    stderr: "ignore",
   });
 }
 
